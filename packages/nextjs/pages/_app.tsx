@@ -28,7 +28,6 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
   const [pageType, setPageTypes] = useState<PageTypes>("Disperse");
 
   useEffect(() => {
-    console.log(router.pathname);
     if (router.pathname === "/") setPageTypes("Disperse");
     else setPageTypes("Withdraw");
   }, [router.pathname]);

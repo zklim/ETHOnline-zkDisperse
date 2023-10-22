@@ -7,3 +7,4 @@ typechain-types
 # files
 **/*.json
 test/ecdsa.test.ts
+tasks/deploysemaphore.ts

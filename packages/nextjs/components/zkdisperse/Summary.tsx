@@ -1,4 +1,7 @@
 import React from "react";
+import { parseEther } from "viem";
+import { useWalletClient } from "wagmi";
+import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { AccountAmount } from "~~/hooks/zkdisperse/useParseTextarea";
 
 interface SummaryProps {
@@ -6,6 +9,18 @@ interface SummaryProps {
 }
 
 const Summary = ({ accountAmount }: SummaryProps) => {
+  const { data: walletClient } = useWalletClient();
+  const { data: ZkDisperseContract } = useScaffoldContract({ contractName: "ZkDisperse", walletClient });
+
+  const handleSubmit = async () => {
+    const addresses = accountAmount.map(v => v.address);
+    const value = accountAmount.map(v => parseEther(v.amount.toString()));
+
+    const tx = await ZkDisperseContract?.write.disperse([addresses, value]);
+
+    console.log(tx);
+  };
+
   return (
     <div className="basis-1/2 px-5 flex flex-col">
       <label className="label">
@@ -27,7 +42,9 @@ const Summary = ({ accountAmount }: SummaryProps) => {
           <span className="">Total Amount: {accountAmount.reduce((partial, v) => partial + v.amount, 0)} ETH</span>
         </div>
         <div>
-          <button className="btn btn-outline btn-block">Submit</button>
+          <button className="btn btn-outline btn-block" onClick={handleSubmit}>
+            Submit
+          </button>
         </div>
       </div>
     </div>
