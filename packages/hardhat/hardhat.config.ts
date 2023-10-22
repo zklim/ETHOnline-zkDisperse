@@ -1,129 +1,87 @@
-import * as dotenv from "dotenv";
-dotenv.config();
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
-import "hardhat-deploy";
-import "@matterlabs/hardhat-zksync-solc";
-import "@matterlabs/hardhat-zksync-verify";
+import "@nomicfoundation/hardhat-chai-matchers"
+import "@nomiclabs/hardhat-ethers"
+import "@nomiclabs/hardhat-etherscan"
+import "@semaphore-protocol/hardhat"
+import "@typechain/hardhat"
+import { config as dotenvConfig } from "dotenv"
+import "hardhat-gas-reporter"
+import { HardhatUserConfig } from "hardhat/config"
+import { NetworksUserConfig } from "hardhat/types"
+import { resolve } from "path"
+import "solidity-coverage"
+import { config } from "./package.json"
+import "./tasks/deploy"
 
-// If not set, it uses ours Alchemy's default API key.
-// You can get your own at https://dashboard.alchemyapi.io
-const providerApiKey = process.env.ALCHEMY_API_KEY || "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
-// If not set, it uses the hardhat account 0 private key.
-const deployerPrivateKey =
-  process.env.DEPLOYER_PRIVATE_KEY ?? "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-// If not set, it uses ours Etherscan default API key.
-const etherscanApiKey = process.env.ETHERSCAN_API_KEY || "DNXJA8RX2Q3VZ4URQIWP7Z68CJXQZSC6AW";
+dotenvConfig({ path: resolve(__dirname, "../../.env") })
 
-const config: HardhatUserConfig = {
-  solidity: {
-    version: "0.8.17",
-    settings: {
-      optimizer: {
-        enabled: true,
-        // https://docs.soliditylang.org/en/latest/using-the-compiler.html#optimizer-options
-        runs: 200,
-      },
+function getNetworks(): NetworksUserConfig {
+    if (!process.env.INFURA_API_KEY || !process.env.ETHEREUM_PRIVATE_KEY) {
+        return {}
+    }
+
+    const accounts = [`0x${process.env.ETHEREUM_PRIVATE_KEY}`]
+    const infuraApiKey = process.env.INFURA_API_KEY
+
+    return {
+        goerli: {
+            url: `https://goerli.infura.io/v3/${infuraApiKey}`,
+            chainId: 5,
+            accounts
+        },
+        sepolia: {
+            url: `https://sepolia.infura.io/v3/${infuraApiKey}`,
+            chainId: 11155111,
+            accounts
+        },
+        mumbai: {
+            url: `https://polygon-mumbai.infura.io/v3/${infuraApiKey}`,
+            chainId: 80001,
+            accounts
+        },
+        "optimism-goerli": {
+            url: `https://optimism-goerli.infura.io/v3/${infuraApiKey}`,
+            chainId: 420,
+            accounts
+        },
+        "arbitrum-goerli": {
+            url: "https://goerli-rollup.arbitrum.io/rpc",
+            chainId: 421613,
+            accounts
+        },
+        arbitrum: {
+            url: "https://arb1.arbitrum.io/rpc",
+            chainId: 42161,
+            accounts
+        }
+    }
+}
+
+const hardhatConfig: HardhatUserConfig = {
+    solidity: config.solidity,
+    paths: {
+        sources: config.paths.contracts,
+        tests: config.paths.tests,
+        cache: config.paths.cache,
+        artifacts: config.paths.build.contracts
     },
-  },
-  defaultNetwork: "localhost",
-  namedAccounts: {
-    deployer: {
-      // By default, it will take the first Hardhat account as the deployer
-      default: 0,
+    networks: {
+        hardhat: {
+            chainId: 1337
+        },
+        ...getNetworks()
     },
-  },
-  networks: {
-    // View the networks that are pre-configured.
-    // If the network you are looking for is not here you can add new network settings
-    hardhat: {
-      forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
-        enabled: process.env.MAINNET_FORKING_ENABLED === "true",
-      },
+    gasReporter: {
+        currency: "USD",
+        enabled: process.env.REPORT_GAS === "true",
+        coinmarketcap: process.env.COINMARKETCAP_API_KEY
     },
-    mainnet: {
-      url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
+    typechain: {
+        outDir: config.paths.build.typechain,
+        target: "ethers-v5"
     },
-    sepolia: {
-      url: `https://eth-sepolia.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    goerli: {
-      url: `https://eth-goerli.alchemyapi.io/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    arbitrum: {
-      url: `https://arb-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    arbitrumGoerli: {
-      url: `https://arb-goerli.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    optimism: {
-      url: `https://opt-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    optimismGoerli: {
-      url: `https://opt-goerli.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    polygon: {
-      url: `https://polygon-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    polygonMumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    polygonZkEvm: {
-      url: `https://polygonzkevm-mainnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    polygonZkEvmTestnet: {
-      url: `https://polygonzkevm-testnet.g.alchemy.com/v2/${providerApiKey}`,
-      accounts: [deployerPrivateKey],
-    },
-    zkSyncTestnet: {
-      url: "https://testnet.era.zksync.dev",
-      zksync: true,
-      accounts: [deployerPrivateKey],
-      verifyURL: "https://zksync2-testnet-explorer.zksync.dev/contract_verification",
-    },
-    zkSync: {
-      url: "https://mainnet.era.zksync.io",
-      zksync: true,
-      accounts: [deployerPrivateKey],
-      verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
-    },
-    gnosis: {
-      url: "https://rpc.gnosischain.com",
-      accounts: [deployerPrivateKey],
-    },
-    chiado: {
-      url: "https://rpc.chiadochain.net",
-      accounts: [deployerPrivateKey],
-    },
-    base: {
-      url: "https://mainnet.base.org",
-      accounts: [deployerPrivateKey],
-    },
-    baseGoerli: {
-      url: "https://goerli.base.org",
-      accounts: [deployerPrivateKey],
-    },
-    scrollSepolia: {
-      url: "https://sepolia-rpc.scroll.io",
-      accounts: [deployerPrivateKey],
-    },
-  },
-  verify: {
     etherscan: {
-      apiKey: `${etherscanApiKey}`,
-    },
-  },
-};
+        apiKey: process.env.ETHERSCAN_API_KEY
+    }
+}
 
-export default config;
+export default hardhatConfig
