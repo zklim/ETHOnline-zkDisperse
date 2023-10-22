@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.4;
+pragma solidity ^0.8.4;
 
-import "@semaphore-protocol/contracts/interfaces/ISemaphore.sol";
+import "./semaphore/interfaces/ISemaphore.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract ZkDisperse {
@@ -24,6 +24,9 @@ contract ZkDisperse {
         uint256 total;
         for (uint256 i = 0; i < targetAmounts.length; ) {
             total += targetAmounts[i];
+            unchecked {
+                i++;
+            }
         }
         require(total == msg.value, "Total amount not equal");
 
@@ -45,24 +48,23 @@ contract ZkDisperse {
         bytes32 hash,
         bytes memory signature,
         uint256 amount,
-        uint256 gId,
+        uint256 _groupId,
         uint256 feedback,
         uint256 merkleTreeRoot,
         uint256 nullifierHash,
         uint256[8] calldata proof
     ) external {
-        require(amountDisperse[groupId] > 0, "Not enough to disperse");
+        require(amountDisperse[_groupId] > 0, "Not enough to disperse");
 
         address recovery = ECDSA.recover(hash, signature);
         require(recovery == msg.sender, "Not owner");
 
-        semaphore.verifyProof(groupId, merkleTreeRoot, feedback, nullifierHash, groupId, proof);
+        semaphore.verifyProof(_groupId, merkleTreeRoot, feedback, nullifierHash, _groupId, proof);
 
-        amountDisperse[gId] -= amount;
-        payable(msg.sender).call{value: amount}("");
+        amountDisperse[_groupId] -= amount;
+        (bool s, ) = payable(msg.sender).call{value: amount}("");
+        require(s, "Withdrawal failed");
 
         emit Withdrawed(msg.sender, amount);
     }
-
-    receive() external payable {}
 }
