@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";
+import { useRouter } from "next/router";
 import { RainbowKitProvider, darkTheme, lightTheme } from "@rainbow-me/rainbowkit";
 import "@rainbow-me/rainbowkit/styles.css";
 import NextNProgress from "nextjs-progressbar";
@@ -15,12 +16,27 @@ import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { appChains } from "~~/services/web3/wagmiConnectors";
 import "~~/styles/globals.css";
 
+type PageTypes = "Withdraw" | "Disperse";
+
 const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
   const price = useNativeCurrencyPrice();
   const setNativeCurrencyPrice = useGlobalState(state => state.setNativeCurrencyPrice);
   // This variable is required for initial client side rendering of correct theme for RainbowKit
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const { isDarkMode } = useDarkMode();
+  const router = useRouter();
+  const [pageType, setPageTypes] = useState<PageTypes>("Disperse");
+
+  useEffect(() => {
+    console.log(router.pathname);
+    if (router.pathname === "/") setPageTypes("Disperse");
+    else setPageTypes("Withdraw");
+  }, [router.pathname]);
+
+  const onButtonClick = () => {
+    if (pageType === "Disperse") router.push("/withdraw");
+    else router.push("/");
+  };
 
   useEffect(() => {
     if (price > 0) {
@@ -47,6 +63,11 @@ const ScaffoldEthApp = ({ Component, pageProps }: AppProps) => {
                 <RainbowKitCustomConnectButton />
               </div>
               <Component {...pageProps} />
+              <div className="flex flex-row justify-center mt-5">
+                <button className="btn btn-outline btn-wide" onClick={onButtonClick}>
+                  {pageType === "Disperse" ? "Withdraw" : "Disperse"}
+                </button>
+              </div>
             </div>
           </main>
         </div>

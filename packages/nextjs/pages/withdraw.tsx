@@ -1,18 +1,8 @@
-import React, { useEffect } from "react";
 import type { NextPage } from "next";
-import { useSignMessage } from "wagmi";
+import { useECDSASignMessage } from "~~/hooks/zkdisperse/useECDSASignMessage";
 
 const Withdraw: NextPage = () => {
-  const { data: signMessageData, signMessage, variables } = useSignMessage();
-
-  useEffect(() => {
-    console.log(signMessageData);
-    console.log(variables);
-  }, [signMessageData]);
-
-  const handleClick = () => {
-    signMessage({ message: "hello world" });
-  };
+  const { handleClick } = useECDSASignMessage();
 
   return (
     <div className="py-10 px-20 shadow-lg shadow-blue-400 rounded-lg w-full">
